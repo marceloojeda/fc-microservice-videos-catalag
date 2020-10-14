@@ -28,7 +28,7 @@ class CategoryTest extends TestCase
     }
 
     public function testCasts() {
-        $casts = ['id' => 'string'];
+        $casts = ['id' => 'string', 'is_active' => 'boolean'];
         $category = new Category();
         $this->assertEquals($casts, $category->getCasts());
     }

@@ -16,3 +16,5 @@ yarn-error.log
 .vscode/
 .history/
 .devcontainer/
+.env.testing
+.gitignore

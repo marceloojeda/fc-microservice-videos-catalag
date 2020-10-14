@@ -20,7 +20,7 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
-        // $this->validate($request, $this->rules);
+        $this->validate($request, $this->rules);
 
         return Category::create($request->all());
     }
