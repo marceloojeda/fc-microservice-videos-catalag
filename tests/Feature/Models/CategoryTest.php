@@ -39,6 +39,7 @@ class CategoryTest extends TestCase
         ]);
         $category->refresh();
 
+        $this->assertTrue(\Ramsey\Uuid\Uuid::isValid($category->id));
         $this->assertEquals('teste1', $category->name);
         $this->assertNull($category->description);
         $this->assertTrue($category->is_active);
@@ -80,16 +81,10 @@ class CategoryTest extends TestCase
         $category->refresh();
 
         $id = $category->id;
-        $this->assertTrue($this->validateUuid($id));
+        $this->assertTrue(\Ramsey\Uuid\Uuid::isValid($id));
 
         $category->delete();
 
         $this->assertNull(Category::first('id', $id));
-    }
-
-    private function validateUuid($value) {
-        Validator::extend('uuid', function ($attribute, $value, $parameters, $validator) {
-            return \Ramsey\Uuid\Uuid::isValid($value);
-        });
     }
 }
