@@ -175,14 +175,14 @@ class CategoryControllerTest extends TestCase
         $this->assertNull($response->json('description'));
     }
 
-    public function testDelete() {
+    public function testDestroy() {
         $category = factory(Category::class)->create();
         $response = $this->json(
             'DELETE',
             route('categories.destroy', ['category' => $category->id])
         );
         $response->assertNoContent();
-        $category = Category::find($category->id);
-        $this->assertEmpty($category);
+        $this->assertNull(Category::find($category->id));
+        $this->assertNotNull(Category::withTrashed()->find($category->id));
     }
 }
