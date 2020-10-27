@@ -20,9 +20,11 @@ class GenreController extends Controller
 
     public function store(Request $request)
     {
-        // $this->validate($request, $this->rules);
+        $this->validate($request, $this->rules);
+        $genre = Genre::create($request->all());
+        $genre->refresh();
+        return $genre;
 
-        return Genre::create($request->all());
     }
 
     public function show(Genre $genre)
@@ -32,7 +34,7 @@ class GenreController extends Controller
 
     public function update(Request $request, Genre $genre)
     {
-        // $this->validate($request, $this->rules);
+        $this->validate($request, $this->rules);
         $genre->update($request->all());
         return $genre;
     }
