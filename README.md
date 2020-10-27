@@ -4,7 +4,7 @@
 
 ## Descrição
 
-Microsserviço de catálogo
+Microsserviço de catálogo de videos
 
 ## Rodar a aplicação
 
