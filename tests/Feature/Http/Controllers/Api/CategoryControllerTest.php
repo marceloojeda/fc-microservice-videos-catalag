@@ -2,168 +2,128 @@
 
 namespace Tests\Feature\Http\Controllers\Api;
 
-use App\Models\Category;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\TestResponse;
+use App\Http\Controllers\Api\BasicCrudController;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use ReflectionClass;
+use Tests\Stubs\Controllers\CategoryControllerStub;
+use Tests\Stubs\Models\CategoryStub;
 use Tests\TestCase;
-use Tests\Traits\TestValidations;
 
 class CategoryControllerTest extends TestCase
 {
-    use DatabaseMigrations, TestValidations;
+    /** @var CategoryControllerStub $controller */
+    private $controller;
 
-    private $category;
-
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
-        $this->category = factory(Category::class)->create();
+        CategoryStub::dropTable();
+        CategoryStub::createTable();
+        $this->controller = new CategoryControllerStub();
+    }
+
+    protected function tearDown(): void
+    {
+        CategoryStub::dropTable();
+        parent::tearDown();
     }
 
     public function testIndex()
     {
-        $response = $this->get(route('categories.index'));
-
-        $response
-            ->assertStatus(200)
-            ->assertJson([$this->category->toArray()]);
+        /** @var CategoryStub $category */
+        $category = CategoryStub::create(['name' => 'test_name', 'description' => 'test_description']);
+        $result = $this->controller->index()->toArray();
+        $this->assertEquals([$category->toArray()], $result);
     }
 
-    public function testShow()
+    public function testInvalidationDataInStore()
     {
-        $response = $this->get(route('categories.show', ['category' => $this->category->id]));
-
-        $response
-            ->assertStatus(200)
-            ->assertJson($this->category->toArray());
-    }
-
-    public function testValidationData()
-    {
-        $this->validationStore();
-        $this->validationUpdate();
-    }
-
-    private function validationStore()
-    {
-        $data = ['name' => ''];
-        $this->assertInvalidationFieldsInStoreAction($data, 'required');
-
-        $data = ['name' => str_repeat('a', 256)];
-        $this->assertInvalidationFieldsInStoreAction($data, 'max.string', ['max' => 255]);
-
-        $data = ['is_active' => 'a'];
-        $this->assertInvalidationFieldsInStoreAction($data, 'boolean');
-    }
-
-    private function validationUpdate()
-    {
-        $data = ['name' => ''];
-        $this->assertInvalidationFieldsInUpdateAction($data, 'required');
-
-        $data = ['name' => str_repeat('a', 256)];
-        $this->assertInvalidationFieldsInUpdateAction($data, 'max.string', ['max' => 255]);
-
-        $data = ['is_active' => 'a'];
-        $this->assertInvalidationFieldsInUpdateAction($data, 'boolean');
+        $this->expectException(ValidationException::class);
+        /** @var Request $request */
+        $request = \Mockery::mock(Request::class);
+        $request->shouldReceive('all')
+            ->once()
+            ->andReturn(['name' => '']);
+        $this->controller->store($request);
     }
 
     public function testStore()
     {
-        $response = $this->json('POST', route('categories.store'), [
-            'name' => 'test'
-        ]);
-        $id = $response->json('id');
-        $category = Category::find($id);
+        /** @var Request $request */
+        $request = \Mockery::mock(Request::class);
+        $request->shouldReceive('all')
+            ->once()
+            ->andReturn(['name' => 'test_name', 'test_description']);
+        $obj = $this->controller->store($request);
+        $this->assertEquals(
+            CategoryStub::find(1)->toArray(),
+            $obj->toArray()
+        );
+    }
 
-        $response
-            ->assertStatus(201)
-            ->assertJson($category->toArray());
-        $this->assertTrue($response->json('is_active'));
-        $this->assertNull($response->json('description'));
+    public function testIfFindOrFailFetchModel()
+    {
+        /** @var CategoryStub $category */
+        $category = CategoryStub::create(['name' => 'test_name', 'description' => 'test_description']);
 
-        $response = $this->json('POST', route('categories.store'), [
-            'name' => 'test',
-            'description' => 'description',
-            'is_active' => false
-        ]);
-        $id = $response->json('id');
-        $category = Category::find($id);
+        $reflectionClass = new ReflectionClass(BasicCrudController::class);
+        $reflectionMethod = $reflectionClass->getMethod('findOrFail');
+        $reflectionMethod->setAccessible(true);
 
-        $response
-            ->assertJsonFragment([
-                'description' => $response->json('description'),
-                'is_active' => false
-            ]);
+        $result = $reflectionMethod->invokeArgs($this->controller, [$category->id]);
+        $this->assertInstanceOf(CategoryStub::class, $result);
+    }
+
+    public function testIfFindOrThrowExceptionWhenIdInvalid()
+    {
+        $this->expectException(ModelNotFoundException::class);
+        $reflectionClass = new ReflectionClass(BasicCrudController::class);
+        $reflectionMethod = $reflectionClass->getMethod('findOrFail');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->controller, [0]);
+        $this->assertInstanceOf(CategoryStub::class, $result);
+    }
+
+    public function testShow()
+    {
+        /** @var CategoryStub $category */
+        $category = CategoryStub::create(['name' => 'test_name', 'description' => 'test_description']);
+
+        $response = $this->controller->show($category->id);
+
+        $this->assertEquals(
+            CategoryStub::find(1)->toArray(),
+            $response->toArray()
+        );
     }
 
     public function testUpdate()
     {
-        $category = factory(Category::class)->create([
-            'is_active' => false
-        ]);
-        $response = $this->json(
-            'PUT',
-            route(
-                'categories.update',
-                ['category' => $category->id]
-            ),
-            [
-                'name' => 'name_altered',
-                'description' => 'description',
-                'is_active' => true
-            ]
+        /** @var CategoryStub $category */
+        $category = CategoryStub::create(['name' => 'test_name', 'description' => 'test_description']);
+
+        $request = \Mockery::mock(Request::class);
+        $request->shouldReceive('all')
+            ->once()
+            ->andReturn(['name' => 'test_changed', 'description' => 'test_description_changed']);
+        $obj = $this->controller->update($request, $category->id);
+        $this->assertEquals(
+            CategoryStub::find(1)->toArray(),
+            $obj->toArray()
         );
-
-        $category = Category::find($response->json('id'));
-        $response
-            ->assertStatus(200)
-            ->assertJson($category->toArray())
-            ->assertJsonFragment([
-                'name' => 'name_altered',
-                'description' => 'description',
-                'is_active' => true
-            ]);
-
-
-        $category = factory(Category::class)->create([
-            'is_active' => false
-        ]);
-        $response = $this->json(
-            'PUT',
-            route(
-                'categories.update',
-                ['category' => $category->id]
-            ),
-            [
-                'name' => 'name_altered',
-                'description' => null,
-                'is_active' => true
-            ]
-        );
-
-        $category = Category::find($response->json('id'));
-        $this->assertNull($response->json('description'));
     }
 
     public function testDestroy()
     {
-        $response = $this->json(
-            'DELETE',
-            route('categories.destroy', ['category' => $this->category->id])
-        );
-        $response->assertNoContent();
-        $this->assertNull(Category::find($this->category->id));
-        $this->assertNotNull(Category::withTrashed()->find($this->category->id));
-    }
+        /** @var CategoryStub $category */
+        $category = CategoryStub::create(['name' => 'test_name', 'description' => 'test_description']);
 
-    protected function routeStore()
-    {
-        return route('categories.store');
-    }
-
-    protected function routeUpdate()
-    {
-        return route('categories.update', ['category' => $this->category->id]);
+        $response = $this->controller->destroy($category->id);
+        $this->createTestResponse($response)
+            ->assertStatus(204);
+        $this->assertCount(0, CategoryStub::all());
     }
 }
