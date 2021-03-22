@@ -7,36 +7,36 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
-use Tests\Stubs\Controllers\GenreControllerStub;
-use Tests\Stubs\Models\GenreStub;
+use Tests\Stubs\Controllers\CastMemberControllerStub;
+use Tests\Stubs\Models\CastMemberStub;
 use Tests\TestCase;
 
-class GenreTest extends TestCase
+class CastMemberTest extends TestCase
 {
-    /** @var GenreControllerStub $controller */
+    /** @var CastMemberControllerStub $controller */
     private $controller;
-    /** @var GenreStub $controller */
-    private $genre;
+    /** @var CastMemberStub $controller */
+    private $castMember;
 
     protected function setUp(): void
     {
         parent::setUp();
-        GenreStub::dropTable();
-        GenreStub::createTable();
-        $this->controller = new GenreControllerStub();
-        $this->genre = GenreStub::create(['name' => 'test_name']);
+        CastMemberStub::dropTable();
+        CastMemberStub::createTable();
+        $this->controller = new CastMemberControllerStub();
+        $this->castMember = CastMemberStub::create(['name' => 'test_name', 'type' => CastMemberStub::MEMBER_ACTOR]);
     }
 
     protected function tearDown(): void
     {
-        GenreStub::dropTable();
+        CastMemberStub::dropTable();
         parent::tearDown();
     }
 
     public function testIndex()
     {
         $result = $this->controller->index()->toArray();
-        $this->assertEquals([$this->genre->toArray()], $result);
+        $this->assertEquals([$this->castMember->toArray()], $result);
     }
 
     public function testInvalidationDataInStore()
@@ -46,7 +46,7 @@ class GenreTest extends TestCase
         $request = \Mockery::mock(Request::class);
         $request->shouldReceive('all')
             ->once()
-            ->andReturn(['name' => '']);
+            ->andReturn(['name' => null, 'type' => 'invalid_data']);
         $this->controller->store($request);
     }
 
@@ -56,11 +56,11 @@ class GenreTest extends TestCase
         $request = \Mockery::mock(Request::class);
         $request->shouldReceive('all')
             ->once()
-            ->andReturn(['name' => 'test_store_function']);
+            ->andReturn(['name' => 'test_name', 'type' => CastMemberStub::MEMBER_DIRECTOR]);
         $obj = $this->controller->store($request);
 
         $this->assertEquals(
-            GenreStub::where(['name' => 'test_store_function'])->firstOrFail()->toArray(),
+            CastMemberStub::where(['name' => 'test_name', 'type' => CastMemberStub::MEMBER_DIRECTOR])->firstOrFail()->toArray(),
             $obj->toArray()
         );
     }
@@ -71,8 +71,8 @@ class GenreTest extends TestCase
         $reflectionMethod = $reflectionClass->getMethod('findOrFail');
         $reflectionMethod->setAccessible(true);
 
-        $result = $reflectionMethod->invokeArgs($this->controller, [$this->genre->id]);
-        $this->assertInstanceOf(GenreStub::class, $result);
+        $result = $reflectionMethod->invokeArgs($this->controller, [$this->castMember->id]);
+        $this->assertInstanceOf(CastMemberStub::class, $result);
     }
 
     public function testIfFindOrThrowExceptionWhenIdInvalid()
@@ -83,15 +83,15 @@ class GenreTest extends TestCase
         $reflectionMethod->setAccessible(true);
 
         $result = $reflectionMethod->invokeArgs($this->controller, [0]);
-        $this->assertInstanceOf(GenreStub::class, $result);
+        $this->assertInstanceOf(CastMemberStub::class, $result);
     }
 
     public function testShow()
     {
-        $response = $this->controller->show($this->genre->id);
+        $response = $this->controller->show($this->castMember->id);
 
         $this->assertEquals(
-            GenreStub::find(1)->toArray(),
+            CastMemberStub::find(1)->toArray(),
             $response->toArray()
         );
     }
@@ -101,19 +101,19 @@ class GenreTest extends TestCase
         $request = \Mockery::mock(Request::class);
         $request->shouldReceive('all')
             ->once()
-            ->andReturn(['name' => 'test_name_changed']);
-        $obj = $this->controller->update($request, $this->genre->id);
+            ->andReturn(['name' => 'test_name_changed', 'type' => CastMemberStub::MEMBER_DIRECTOR]);
+        $obj = $this->controller->update($request, $this->castMember->id);
         $this->assertEquals(
-            GenreStub::find(1)->toArray(),
+            CastMemberStub::find(1)->toArray(),
             $obj->toArray()
         );
     }
 
     public function testDestroy()
     {
-        $response = $this->controller->destroy($this->genre->id);
+        $response = $this->controller->destroy($this->castMember->id);
         $this->createTestResponse($response)
             ->assertStatus(204);
-        $this->assertCount(0, GenreStub::all());
+        $this->assertCount(0, CastMemberStub::all());
     }
 }

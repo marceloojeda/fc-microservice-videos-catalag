@@ -23,7 +23,6 @@ class CastMemberController extends BasicCrudController
     protected function rulesUpdate()
     {
         return [
-            'id' => 'required',
             'name' => 'required|max:255',
             'type' => 'required|digits_between:' . implode(',', CastMember::typesMembers()),
             'is_active' => 'boolean'
