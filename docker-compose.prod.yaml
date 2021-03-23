@@ -3,14 +3,8 @@ version: '3'
 services:
   app:
     build: .
-    environment:
-        - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID}
-        - GOOGLE_CLOUD_KEY_FILE=${GOOGLE_CLOUD_KEY_FILE}
-        - GOOGLE_CLOUD_STORAGE_BUCKET=${GOOGLE_CLOUD_STORAGE_BUCKET}
-        - GOOGLE_CLOUD_STORAGE_API_URI=${GOOGLE_CLOUD_STORAGE_API_URI}
-        - TESTING_PROD=${TESTING_PROD}
     container_name: app
-    # entrypoint: dockerize -wait tcp://db:3306 -timeout 40s ./.docker/entrypoint.sh
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 40s ./.docker/entrypoint.sh
     volumes:
       - .:/var/www
     networks:
@@ -45,7 +39,7 @@ services:
       restart: always
       tty: true
       ports:
-          - "33006:3306"
+          - "3306:3306"
       volumes:
           - ./.docker/mysql:/docker-entrypoint-initdb.d
       environment:
