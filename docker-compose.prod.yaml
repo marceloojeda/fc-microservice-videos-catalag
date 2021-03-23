@@ -3,6 +3,8 @@ version: '3'
 services:
   app:
     build: .
+    environment:
+      - MYSQL_PORT=3306
     container_name: app
     entrypoint: dockerize -wait tcp://db:3306 -timeout 40s ./.docker/entrypoint.sh
     volumes:
@@ -43,8 +45,8 @@ services:
       volumes:
           - ./.docker/mysql:/docker-entrypoint-initdb.d
       environment:
-          - MYSQL_USER=ojeda
-          - MYSQL_ROOT_PASSWORD=Marcelo.2020
+          - MYSQL_USER=root
+          - MYSQL_ROOT_PASSWORD=root
           - MYSQL_DATABASE=code_micro_videos
       networks:
           - app-network
