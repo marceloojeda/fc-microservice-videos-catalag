@@ -7,7 +7,7 @@ use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Tests\TestCase;
 use Tests\Traits\TestValidations;
 
-class CastMemberControllerTest extends TestCase
+class CastMemberControllerTest extends  TestCase
 {
     use DatabaseMigrations, TestValidations;
 
