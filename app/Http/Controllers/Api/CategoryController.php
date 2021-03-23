@@ -22,8 +22,8 @@ class CategoryController extends BasicCrudController
     protected function rulesUpdate()
     {
         return [
-            'id' => 'required',
             'name' => 'required|max:255',
+            'description' => 'nullable',
             'is_active' => 'boolean'
         ];
     }

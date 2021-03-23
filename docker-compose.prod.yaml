@@ -3,7 +3,10 @@ version: '3'
 services:
   app:
     build: .
+    environment:
+      - MYSQL_PORT=3306
     container_name: app
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 40s ./.docker/entrypoint.sh
     volumes:
       - .:/var/www
     networks:
@@ -31,24 +34,26 @@ services:
       - app
 
   db:
-    build: .docker/mysql
-    command: --innodb-use-native-aio=0
-    container_name: db
-    restart: always
-    tty: true
-    ports:
-      - "3306:3306"
-    volumes:
-      - ./.docker/dbdata:/var/lib/mysql
-      - ./.docker/mysql:/docker-entrypoint-initdb.d
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_USER=root
-    networks:
-      - app-network
+      build: .docker/mysql
+      command:
+          - --innodb-use-native-aio=0
+      container_name: db
+      restart: always
+      tty: true
+      ports:
+          - "3306:3306"
+      volumes:
+          - ./.docker/mysql:/docker-entrypoint-initdb.d
+      environment:
+          - MYSQL_USER=root
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_DATABASE=code_micro_videos
+      networks:
+          - app-network
 
   redis:
     image: redis:alpine
+    container_name: redis
     expose:
       - 6379
     networks:
