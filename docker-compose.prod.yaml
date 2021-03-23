@@ -31,11 +31,11 @@ services:
       - app
 
   db:
-    build: .docker/mysql
-    command: --innodb-use-native-aio=0
-    container_name: db
+    build: ./.docker/mysql
+    container_name: micro-videos-db
     restart: always
     tty: true
+    # command: --innodb-use-native-aio=0
     ports:
       - "3306:3306"
     volumes:
