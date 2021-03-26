@@ -7,15 +7,15 @@ use App\Models\Traits\Uuid;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use PHPUnit\Framework\TestCase;
 
-class GenreTest extends TestCase
+class GenreUnitTest extends TestCase
 {
 
     public function testFillable()
     {
         $arrExpected = ['name', 'is_active'];
 
-        $category = new Genre();
-        $this->assertEquals($arrExpected, $category->getFillable());
+        $genre = new Genre();
+        $this->assertEquals($arrExpected, $genre->getFillable());
     }
 
     public function testIfUseTraits() {
