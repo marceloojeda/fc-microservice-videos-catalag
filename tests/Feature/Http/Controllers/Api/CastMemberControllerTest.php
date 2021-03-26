@@ -2,118 +2,179 @@
 
 namespace Tests\Feature\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\BasicCrudController;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
-use ReflectionClass;
-use Tests\Stubs\Controllers\CastMemberControllerStub;
-use Tests\Stubs\Models\CastMemberStub;
+use App\Models\CastMember;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Tests\TestCase;
+use Tests\Traits\TestValidations;
 
-class CastMemberControllerTest extends TestCase
+class CastMemberControllerTest extends  TestCase
 {
-    /** @var CastMemberControllerStub $controller */
-    private $controller;
-    /** @var CastMemberStub $controller */
+    use DatabaseMigrations, TestValidations;
+
     private $castMember;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
-        CastMemberStub::dropTable();
-        CastMemberStub::createTable();
-        $this->controller = new CastMemberControllerStub();
-        $this->castMember = CastMemberStub::create(['name' => 'test_name', 'type' => CastMemberStub::MEMBER_ACTOR]);
-    }
-
-    protected function tearDown(): void
-    {
-        CastMemberStub::dropTable();
-        parent::tearDown();
+        $this->castMember = factory(CastMember::class)->create(['type' => CastMember::MEMBER_ACTOR]);
+        $this->castMember->refresh();
     }
 
     public function testIndex()
     {
-        $result = $this->controller->index()->toArray();
-        $this->assertEquals([$this->castMember->toArray()], $result);
-    }
+        $response = $this->get(route('cast_members.index'));
 
-    public function testInvalidationDataInStore()
-    {
-        $this->expectException(ValidationException::class);
-        /** @var Request $request */
-        $request = \Mockery::mock(Request::class);
-        $request->shouldReceive('all')
-            ->once()
-            ->andReturn(['name' => null, 'type' => 'invalid_data']);
-        $this->controller->store($request);
-    }
-
-    public function testStore()
-    {
-        /** @var Request $request */
-        $request = \Mockery::mock(Request::class);
-        $request->shouldReceive('all')
-            ->once()
-            ->andReturn(['name' => 'test_name', 'type' => CastMemberStub::MEMBER_DIRECTOR]);
-        $obj = $this->controller->store($request);
-
-        $this->assertEquals(
-            CastMemberStub::where(['name' => 'test_name', 'type' => CastMemberStub::MEMBER_DIRECTOR])->firstOrFail()->toArray(),
-            $obj->toArray()
-        );
-    }
-
-    public function testIfFindOrFailFetchModel()
-    {
-        $reflectionClass = new ReflectionClass(BasicCrudController::class);
-        $reflectionMethod = $reflectionClass->getMethod('findOrFail');
-        $reflectionMethod->setAccessible(true);
-
-        $result = $reflectionMethod->invokeArgs($this->controller, [$this->castMember->id]);
-        $this->assertInstanceOf(CastMemberStub::class, $result);
-    }
-
-    public function testIfFindOrThrowExceptionWhenIdInvalid()
-    {
-        $this->expectException(ModelNotFoundException::class);
-        $reflectionClass = new ReflectionClass(BasicCrudController::class);
-        $reflectionMethod = $reflectionClass->getMethod('findOrFail');
-        $reflectionMethod->setAccessible(true);
-
-        $result = $reflectionMethod->invokeArgs($this->controller, [0]);
-        $this->assertInstanceOf(CastMemberStub::class, $result);
+        $response
+            ->assertStatus(200)
+            ->assertJson([$this->castMember->toArray()]);
     }
 
     public function testShow()
     {
-        $response = $this->controller->show($this->castMember->id);
+        $response = $this->get(route('cast_members.show', ['cast_member' => $this->castMember->id]));
 
-        $this->assertEquals(
-            CastMemberStub::find(1)->toArray(),
-            $response->toArray()
-        );
+        $response
+            ->assertStatus(200)
+            ->assertJson($this->castMember->toArray());
+    }
+
+    public function testValidationData()
+    {
+        $this->validationStore();
+        $this->validationUpdate();
+    }
+
+    private function validationStore()
+    {
+        $data = ['name' => ''];
+        $this->assertInvalidationFieldsInStoreAction($data, 'required');
+
+        $data = ['name' => str_repeat('a', 256)];
+        $this->assertInvalidationFieldsInStoreAction($data, 'max.string', ['max' => 255]);
+
+        $data = ['is_active' => 'a'];
+        $this->assertInvalidationFieldsInStoreAction($data, 'boolean');
+
+        $data = ['type' => ''];
+        $this->assertInvalidationFieldsInUpdateAction($data, 'required');
+
+        // $data = ['type' => 'b'];
+        // $this->assertInvalidationFieldsInStoreAction($data, 'in', CastMember::typesMembers());
+
+        // $data = ['type' => 99];
+        // $this->assertInvalidationFieldsInStoreAction($data, 'in', CastMember::typesMembers());
+    }
+
+    private function validationUpdate()
+    {
+        $data = ['name' => ''];
+        $this->assertInvalidationFieldsInUpdateAction($data, 'required');
+
+        $data = ['name' => str_repeat('a', 256)];
+        $this->assertInvalidationFieldsInUpdateAction($data, 'max.string', ['max' => 255]);
+
+        $data = ['is_active' => 'a'];
+        $this->assertInvalidationFieldsInUpdateAction($data, 'boolean');
+
+        $data = ['type' => ''];
+        $this->assertInvalidationFieldsInUpdateAction($data, 'required');
+
+        // $data = ['is_active' => 'b'];
+        // $this->assertInvalidationFieldsInStoreAction($data, 'digits_between', CastMember::typesMembers());
+
+        // $data = ['is_active' => 99];
+        // $this->assertInvalidationFieldsInStoreAction($data, 'digits_between', CastMember::typesMembers());
+    }
+
+    public function testStore()
+    {
+        $response = $this->json('POST', route('cast_members.store'), [
+            'name' => 'test',
+            'type' => CastMember::MEMBER_ACTOR
+        ]);
+        $id = $response->json('id');
+        $castMember = CastMember::find($id);
+
+        $response
+            ->assertStatus(201)
+            ->assertJson($castMember->toArray());
+        $this->assertTrue($response->json('is_active'));
+
+        $response
+            ->assertJsonFragment(['is_active' => true]);
+
+        //     $response = $this->json('POST', route('cast_members.store'), [
+        //     'name' => 'test'
+        // ]);
+        // $id = $response->json('id');
+        // $castMember = CastMember::find($id);
     }
 
     public function testUpdate()
     {
-        $request = \Mockery::mock(Request::class);
-        $request->shouldReceive('all')
-            ->once()
-            ->andReturn(['name' => 'test_name_changed', 'type' => CastMemberStub::MEMBER_DIRECTOR]);
-        $obj = $this->controller->update($request, $this->castMember->id);
-        $this->assertEquals(
-            CastMemberStub::find(1)->toArray(),
-            $obj->toArray()
+        $response = $this->json(
+            'PUT',
+            route(
+                'cast_members.update',
+                ['cast_member' => $this->castMember->id]
+            ),
+            [
+                'name' => 'name_altered',
+                'type' => CastMember::MEMBER_DIRECTOR,
+                'is_active' => true
+            ]
         );
+
+        $castMember = CastMember::find($response->json('id'));
+        $response
+            ->assertStatus(200)
+            ->assertJson($castMember->toArray())
+            ->assertJsonFragment([
+                'name' => 'name_altered',
+                'type' => CastMember::MEMBER_DIRECTOR,
+                'is_active' => true
+            ]);
+
+
+        $castMember = factory(CastMember::class)->create([
+            'is_active' => false
+        ]);
+        $response = $this->json(
+            'PUT',
+            route(
+                'cast_members.update',
+                ['cast_member' => $castMember->id]
+            ),
+            [
+                'name' => 'name_altered',
+                'type' => CastMember::MEMBER_DIRECTOR,
+                'is_active' => true
+            ]
+        );
+
+        $castMember = CastMember::find($response->json('id'));
+        $response
+            ->assertJsonFragment(['is_active' => true]);
     }
 
     public function testDestroy()
     {
-        $response = $this->controller->destroy($this->castMember->id);
-        $this->createTestResponse($response)
-            ->assertStatus(204);
-        $this->assertCount(0, CastMemberStub::all());
+        $response = $this->json(
+            'DELETE',
+            route('cast_members.destroy', ['cast_member' => $this->castMember->id])
+        );
+        $response->assertNoContent();
+        $this->assertNull(CastMember::find($this->castMember->id));
+        $this->assertNotNull(CastMember::withTrashed()->find($this->castMember->id));
+    }
+
+    protected function routeStore()
+    {
+        return route('cast_members.store');
+    }
+
+    protected function routeUpdate()
+    {
+        return route('cast_members.update', ['cast_member' => $this->castMember->id]);
     }
 }
