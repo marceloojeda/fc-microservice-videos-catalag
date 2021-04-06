@@ -14,7 +14,7 @@ class CreateCastMembersTable extends Migration
     public function up()
     {
         Schema::create('cast_members', function (Blueprint $table) {
-            $table->uuid('id');
+            $table->uuid('id')->primary();
             $table->string('name');
             $table->smallInteger('type');
             $table->boolean('is_active')->default(true);
