@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\VideoController;
 use App\Models\Category;
 use App\Models\Genre;
 use App\Models\Video;
-use Exception;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Tests\Exceptions\TestException;
@@ -150,6 +149,8 @@ class VideoControllerTest extends TestCase
                 'created_at',
                 'updated_at'
             ]);
+
+            dd($this->genre->categories->toArray());
 
             $response = $this->assertUpdate(
                 $value['send_data'],
