@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Video;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VideoController extends BasicCrudController
 {
@@ -19,7 +20,8 @@ class VideoController extends BasicCrudController
             'rating' => 'required|in:' . implode(',', Video::RATING_LIST),
             'duration' => 'required|integer',
             'categories_id' => 'required|array|exists:categories,id',
-            'genres_id' => 'required|array|exists:genres,id'
+            'genres_id' => 'required|array|exists:genres,id',
+            Rule::unique('category_genre')
         ];
     }
 
