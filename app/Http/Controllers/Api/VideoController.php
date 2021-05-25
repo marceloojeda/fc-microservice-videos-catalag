@@ -20,8 +20,7 @@ class VideoController extends BasicCrudController
             'rating' => 'required|in:' . implode(',', Video::RATING_LIST),
             'duration' => 'required|integer',
             'categories_id' => 'required|array|exists:categories,id',
-            'genres_id' => 'required|array|exists:genres,id',
-            Rule::unique('category_genre')
+            'genres_id' => 'required|array|exists:genres,id'
         ];
     }
 
