@@ -14,7 +14,7 @@ class GenreController extends BasicCrudController
         $this->rules = [
             'name' => 'required|max:255',
             'is_active' => 'boolean',
-            'categories_id' => 'required|array|exists:categories,id'
+            'categories_id' => 'required|array|exists:categories,id,deleted_at,NULL'
         ];
     }
 
@@ -25,7 +25,6 @@ class GenreController extends BasicCrudController
 
     protected function rulesStore()
     {
-        $this->rules['categories_id'] = 'required|array|exists:categories,id|unique:category_genre,category_id';
         return $this->rules;
     }
 
